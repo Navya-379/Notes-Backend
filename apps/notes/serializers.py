@@ -56,6 +56,12 @@ class NoteWriteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Title cannot be blank.")
         return value
 
+    def validate_content(self, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("Content cannot be blank.")
+        return value
+
 
 class ShareNoteSerializer(serializers.Serializer):
     share_with_email = serializers.EmailField()
