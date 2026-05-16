@@ -81,6 +81,34 @@ class NotesApiTests(TestCase):
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.json()["message"], "Invalid email or password")
 
+    def test_auth_and_validation_edges_are_handled(self):
+        response = self.client.get("/notes")
+        self.assertEqual(response.status_code, 403)
+
+        token = self.register_and_login("edge@example.com")
+        self.authorize(token)
+
+        response = self.client.post("/notes", {"title": "   ", "content": "Body"}, format="json")
+        self.assertEqual(response.status_code, 400)
+        response = self.client.post("/notes", {"title": "Title", "content": "   "}, format="json")
+        self.assertEqual(response.status_code, 400)
+
+        response = self.client.get("/search")
+        self.assertEqual(response.status_code, 400)
+
+        response = self.client.post(
+            "/notes",
+            {"title": "Private", "content": "Only owner can share"},
+            format="json",
+        )
+        note_id = response.json()["id"]
+        response = self.client.post(
+            f"/notes/{note_id}/share",
+            {"share_with_email": "missing@example.com"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 404)
+
     def test_about_and_openapi_are_public(self):
         self.client.credentials()
         self.assertEqual(self.client.get("/about").status_code, 200)
